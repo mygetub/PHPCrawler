@@ -13,31 +13,39 @@
 		//解析器
 		//Reg:正则表达式
 		//Xpath：xpath解析器
-		'parser' => 'Reg',
+		'parser' => 'Xpath',
 		//抓取规则
 		//name:放到数据库中的列名
 		//selector 解析器语法
 		'rule' => array(
 			array(
 				'name'=>'Name',
-				'selector'=>'/<div class="user-header-cover">[\s\S]*?<\/div>/',
-				//'selector'=>'//div[@class="content"]'
+				//'selector'=>'/<div class="user-header-cover">[\s\S]*?<\/div>/',
+				'selector'=>'//div[@class="user-header-cover"]/h2',
 				//数据类型
 				'type'=>'varchar(255)'
-			),
-			array(
-				'name'=>'Information',
-				'selector'=>'/<div class="user-col-left">[\s\S]*?<\/div>/',
-				//'selector'=>'//div[@class="content"]'
-				//数据类型
-				'type'=>'varchar(255) null'
 			)
+			// ,
+			// array(
+			// 	'name'=>'Information',
+			// 	'selector'=>'/<div class="user-col-left">[\s\S]*?<\/div>/',
+			// 	//'selector'=>'//div[@class="content"]'
+			// 	//数据类型
+			// 	'type'=>'varchar(255) null'
+			// )
 			// array(
 			// 	'name'=>'author',
 				
 			// 	'selector'=>'/<div class="author[\s\S]*?">[\s\S]*?<\/div>/',
 			// 	'type'=>'text'
 			// )
+		),
+		//模拟登陆
+		'login' => array(
+			"LoginForm[returnUrl]" => "http%3A%2F%2Fwww.waduanzi.com%2F",
+		    "LoginForm[username]" => "用户名",
+		    "LoginForm[password]" => "密码",
+		    "yt0" => "登录",
 		),
 		//抓取模式
 		/**

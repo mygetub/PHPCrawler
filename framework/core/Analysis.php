@@ -62,8 +62,7 @@
 	        }
 	        $result = array();
 	        foreach ($elements as $e) {
-			  // array_push($result,$e->getElementsByTagName('span'));
-				echo $e->nodeType;
+			  array_push($result,$e->nodeValue);
 			}
 			//解析完成
 			log::info('Xpath done','[ info ]',1);
@@ -86,7 +85,7 @@
 	        }
 			log::info('Reg done','[ info ]',1);
 
-	        return $out;
+	        return $out[0];
 
 		}
 

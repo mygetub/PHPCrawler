@@ -37,6 +37,11 @@
 	    const AGENT_IOS = "Mozilla/5.0 (iPhone; CPU iPhone OS 9_3_3 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13G34 Safari/601.1";
 	    const AGENT_ANDROID = "Mozilla/5.0 (Linux; U; Android 6.0.1;zh_cn; Le X820 Build/FEXCNFN5801507014S) AppleWebKit/537.36 (KHTML, like Gecko)Version/4.0 Chrome/49.0.0.0 Mobile Safari/537.36 EUI Browser/5.8.015S";
 
+
+	    /**
+	     * 爬虫名称
+	     */
+	    public static $name = '';
 		/**
 		 * 入口连接
 		 */
@@ -45,6 +50,10 @@
 		 * 解析器选择
 		 */
 		public static $parser = '';
+		/**
+		 * 抓取模式
+		 */
+		public static $method = '';
 		/**
 		 * 爬取次数
 		 */
@@ -89,6 +98,10 @@
 			$header .= "\tSpider is started,Please wait... \n";
 			log::output($header,self::ERROR_LEVEL_1);
 			/**
+			 * 配置爬虫名称
+			 */
+			self::$name = empty($config['name'])?log::info('Deletion name','config error ',self::ERROR_LEVEL_2):$config['name'];
+			/**
 			 * 配置入口url
 			 */
 			self::$url = empty($config['url'])?log::info('Deletion URL','config error ',self::ERROR_LEVEL_2):$config['url'];
@@ -101,6 +114,14 @@
 			 */
 			self::$selector = empty($config['rule'])?log::info('Deletion rule','config error ',self::ERROR_LEVEL_2):$config['rule'];
 			
+			/**
+			 * 配置抓取模式
+			 */
+			self::$method = empty($config['method'])?log::info('Deletion method','config error ',self::ERROR_LEVEL_2):$config['method'];
+
+			/**
+			 * 配置请求头信息
+			 */
 			self::$config['User-Agent'] = empty($config['User-Agent'])?self::AGENT_PC:$config['User-Agent'];
 			log::info('The initialization is done ','[ info ]',self::ERROR_LEVEL_1);
 		}
@@ -133,7 +154,8 @@
 			//此时解析的为一个页面中所有的同一类的信息
 			foreach($selector as $value){
 				//print_r(Analysis::Parser($html,$value['selector'],$type));
-				$tempInformation = Analysis::Parser($html,$value['selector'],$type)[0];
+				$tempInformation = Analysis::Parser($html,$value['selector'],$type);
+
 				// print_r($tempInformation);
 				for($i = 0;$i<count($tempInformation);$i++){
 					$result[$i][$value['name']] = $tempInformation[$i];
@@ -166,26 +188,59 @@
 				log::info('data insert done','[ info ]',1);
 			}
 		}
+
+		/**
+		 * 爬虫运行中心
+		 */
+		public static function CrawlerRun(){
+			$stime=microtime(true); 
+			self::$url  = self::$url.'123'.'/';
+			log::info('Crawling link:'.self::$url,'[ info ]',1);
+			/*爬虫流程开始*/
+			//获取url的html信息
+			self::Relay();
+			//提取信息
+			self::get_select(self::$html,self::$selector,self::$parser);
+			//存入数据库
+			// print_r(self::$result);
+			self::insertDatabase(self::$name,self::$result);
+			/*爬虫流程结束*/
+			$etime=microtime(true);//获取程序执行结束的时间
+			$total=$etime-$stime;  
+			log::info('Crawling link:'.self::$url.'done,execution time:'.$total,'[ info ]',1);
+		}
+
+
+		/**
+		 * Increasing模式,主要用来分配URL
+		 */
+		public static function Increasing(){
+			self::CrawlerRun();
+		}
+
+		/**
+		 * 爬取规则选择中心
+		 */
+		public static function CrawlerSelector(){
+			switch(self::$method){
+				case 'Increasing':
+					self::Increasing();
+					break;
+
+			};
+		}
+
+		/**
+		 * 爬虫运行中心
+		 * @return [type] [description]
+		 */
 		public static function run(){
 			//初始化数据库
 			self::initDatabase(self::$configs);
-			for($i=748;$i<10000;$i++){
-				$stime=microtime(true); 
-				self::$url  = self::$configs['url'].$i.'/';
-				log::info('Crawling link:'.self::$url,'[ info ]',1);
-				/*爬虫流程开始*/
-				//获取url的html信息
-				self::Relay();
-				//提取信息
-				self::get_select(self::$html,self::$selector,self::$parser);
-				//存入数据库
-				self::insertDatabase(self::$configs['name'],self::$result);
-				/*爬虫流程结束*/
-				$etime=microtime(true);//获取程序执行结束的时间
-				$total=$etime-$stime;  
-				log::info('Crawling link:'.self::$url.'done,execution time:'.$total,'[ info ]',1);
-			}
-			
-
+			//选择抓取模式
+			self::CrawlerSelector();
+						
 		}
+
+
 	}
