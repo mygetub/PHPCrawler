@@ -35,6 +35,9 @@
 				case 'Reg':
 					return self::Reg_select($html,$selector);
 					break;
+				case 'Simple':
+					return self::Simple_select($html,$selector);
+					break;
 				default:
 	            	log::info("connot find ".$type." Parser ",'[ select errors ]',2);
 					breakl;
@@ -47,7 +50,7 @@
 		 */
 		public static function Xpath_select($html,$selector){
 			//开始解析
-			log::info('Xpath init...','[ info ]',1);
+			// log::info('Xpath init...','[ info ]',1);
 			if(!is_Object(self::$dom)){
 				//生成dom对象
 				self::$dom = new DOMDocument();
@@ -65,7 +68,7 @@
 			  array_push($result,$e->nodeValue);
 			}
 			//解析完成
-			log::info('Xpath done','[ info ]',1);
+			// log::info('Xpath done','[ info ]',1);
 	        // 如果只有一个元素就直接返回string，否则返回数组
 	        return $result;
 		}
@@ -78,15 +81,34 @@
 		 */
 		public static function Reg_select($html,$selector){
 			// preg_match_all("|<[^>]+>(.*)</[^>]+>|U", $str, $matchs);
-			log::info('Reg init...','[ info ]',1);
+			// log::info('Reg init...','[ info ]',1);
 			if(preg_match_all($selector, $html, $out) === false)
 	        {
 	            log::info("the selector in the Reg (\"{$selector}\") ",'[ syntax errors ]',2);
 	        }
-			log::info('Reg done','[ info ]',1);
+			// log::info('Reg done','[ info ]',1);
 
 	        return $out[0];
 
+		}
+
+
+		/**
+		 * 正则表达式解析器
+		 * @param string $html     html代码
+		 * @param string $selector 正则表达式
+     	 * @created time :2017年3月1日20:45:17
+		 */
+		public static function Simple_select($html,$selector){
+			// 新建一个Dom实例
+			$simple = new simple_html_dom();
+			// 从字符串中加载
+			$simple->load($html);
+			//读取信息
+			$info = $simple->find('#nav');
+			// echo $html;
+			$simple->clear();
+			return $info;
 		}
 
 

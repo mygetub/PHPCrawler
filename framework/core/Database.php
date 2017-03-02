@@ -44,7 +44,7 @@
 			for($i = 0;$i<count($data);$i++){
 				foreach ($data[$i] as $key => $value) {
 					array_push($keys, $name.$key);
-					array_push($values, is_string($value)? '\''.$value.'\'':$value);
+					array_push($values, is_string($value)? '\''.addslashes($value).'\'':addslashes($value));
 				}
 			}
 			$sql = 'INSERT INTO '.$name.' ('.implode(', ', $keys).') VALUES ('.implode(', ', $values).')';

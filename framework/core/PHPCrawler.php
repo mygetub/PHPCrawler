@@ -128,12 +128,13 @@
 		/**
 		 * 获得url的html
 		 */
-		public static function Relay(){
+		public static function Relay($url){
 			// log::info('relay','[ info ]',self::ERROR_LEVEL_1);
 			$Obtain = new Obtain();
-			self::$html = $Obtain::Request(self::$url,self::$config);
+			self::$html = $Obtain::Request($url,self::$config,self::$configs['cookie']);
 			if(self::$html === FALSE){
-				log::info( "cURL 具体出错信息: " . curl_error(Obtain::$ch),' curl error ',self::ERROR_LEVEL_2);
+				log::info( "cURL 具体出错信息: " . curl_error(Obtain::$ch),' curl error ',self::ERROR_LEVEL_1);
+				self::Relay($url);
 			}
 			//web页面解析完成
 			log::info('Web analysis complete','[ info ]',1);
@@ -149,6 +150,7 @@
      	 * @created time :2017年2月23日14:20:27
 		 */
 		public static function get_select($html,$selector,$type){
+			log::info($type.' init... ','[ info ]',1);
 			$result = array();
 			//解析选择规则
 			//此时解析的为一个页面中所有的同一类的信息
@@ -156,13 +158,14 @@
 				//print_r(Analysis::Parser($html,$value['selector'],$type));
 				$tempInformation = Analysis::Parser($html,$value['selector'],$type);
 
-				// print_r($tempInformation);
+				//print_r($tempInformation);
 				for($i = 0;$i<count($tempInformation);$i++){
-					$result[$i][$value['name']] = $tempInformation[$i];
+					$result[$i][$value['name']] = trim($tempInformation[$i]);
 					$result[$i]['Time'] =  date('Y-m-d H:i:s',time());
 				}
 			}
 			self::$result = $result;
+			log::info($type.' done ','[ info ]',1);
 		}
 
 		/**
@@ -192,22 +195,22 @@
 		/**
 		 * 爬虫运行中心
 		 */
-		public static function CrawlerRun(){
+		public static function CrawlerRun($url){
 			$stime=microtime(true); 
-			self::$url  = self::$url.'123'.'/';
-			log::info('Crawling link:'.self::$url,'[ info ]',1);
+			//self::$url  = self::$url.'123'.'/';
+			log::info('Crawling link:'.$url,'[ info ]',1);
 			/*爬虫流程开始*/
 			//获取url的html信息
-			self::Relay();
+			self::Relay($url);
 			//提取信息
 			self::get_select(self::$html,self::$selector,self::$parser);
 			//存入数据库
-			// print_r(self::$result);
+			//print_r(self::$result);
 			self::insertDatabase(self::$name,self::$result);
 			/*爬虫流程结束*/
 			$etime=microtime(true);//获取程序执行结束的时间
 			$total=$etime-$stime;  
-			log::info('Crawling link:'.self::$url.'done,execution time:'.$total,'[ info ]',1);
+			log::info('Crawling link:'.$url.'done,execution time:'.$total,'[ info ]',1);
 		}
 
 
@@ -215,7 +218,17 @@
 		 * Increasing模式,主要用来分配URL
 		 */
 		public static function Increasing(){
-			self::CrawlerRun();
+			$stime=microtime(true); 
+			// 609
+			for($i = 102664;$i<200000;$i++){
+				$url  = self::$url.$i.'/';
+				self::CrawlerRun($url);
+			}
+			// $url  = self::$url.'100005'.'/';
+			self::CrawlerRun($url);
+			$etime=microtime(true);//获取程序执行结束的时间
+			$total=$etime-$stime;  
+			log::info('Crawler over,time:'.$total,'[ info ]',1);
 		}
 
 		/**

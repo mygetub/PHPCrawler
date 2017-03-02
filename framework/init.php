@@ -36,3 +36,4 @@
 	require CORE.'/core/Obtain.php';
 	require CORE.'/core/Analysis.php';
 	require CORE.'/core/Database.php';
+	require CORE.'/core/simple_html_dom.php';
