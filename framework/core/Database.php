@@ -43,13 +43,32 @@
 			$values = array();
 			for($i = 0;$i<count($data);$i++){
 				foreach ($data[$i] as $key => $value) {
-					array_push($keys, $name.$key);
+					array_push($keys, $key);
 					array_push($values, is_string($value)? '\''.addslashes($value).'\'':addslashes($value));
 				}
 			}
 			$sql = 'INSERT INTO '.$name.' ('.implode(', ', $keys).') VALUES ('.implode(', ', $values).')';
 			return self::sqlRun($sql);
 			// return $sql;
+		}
+
+		/**
+		 * 添加自动关联
+		 * @return [type] [description]
+		 */
+		public static function autoElo($name,$topic_id){
+			$data = array('article_id' => self::$pdo->lastInsertId(),
+						  'topic_id'=>$topic_id,
+						  'created_at' => date('Y-m-d H:i:s',time()),
+						  'updated_at' => date('Y-m-d H:i:s',time()),);
+			$keys = array();
+			$values = array();
+			foreach ($data as $key => $value) {
+				array_push($keys, $key);
+				array_push($values, is_string($value)? '\''.addslashes($value).'\'':addslashes($value));
+			}
+			$sql = 'INSERT INTO '.$name.' ('.implode(', ', $keys).') VALUES ('.implode(', ', $values).')';
+			return self::sqlRun($sql);
 		}
 
 		/**
@@ -184,9 +203,9 @@
 			 * 		...
 			 * }
 			 */
-			$sql = 'create table '.$column["name"].'('.$column["name"].'Id int primary key auto_increment not null UNIQUE,'.$column["name"].'Time DateTime ,';
+			$sql = 'create table '.$column["name"].'(id int primary key auto_increment not null UNIQUE,';
 			for($i = 0;$i<count($column['rule']);$i++){
-				$sql.= $column["name"].$column['rule'][$i]['name'].' '.$column['rule'][$i]['type'].' , ';
+				$sql.= $column['rule'][$i]['name'].' '.$column['rule'][$i]['type'].' , ';
 			}
 			$sql = substr($sql,0,strlen($sql)-2).' ) ';
 			self::sqlRun($sql); 
@@ -199,6 +218,7 @@
 		public static function err($error){
 			log::info("对不起，您的操作有误，错误原因为：".$error,'[ database error ]',2);
 		}
+
 	}
 
 

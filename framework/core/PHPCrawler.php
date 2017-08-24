@@ -67,6 +67,18 @@
 		 */
 		public static $selector = '';
 		/**
+		 * 首页规则URL
+		 */
+		public static $first = '';
+		/**
+		 * 爬取首页多少条URL
+		 */
+		public static $count = 0;
+		/**
+		 * 标签id
+		 */
+		public static $topic = 0;
+		/**
 		 * 请求头信息
 		 * @var array
 		 */
@@ -77,7 +89,18 @@
 		 * @var array
 		 */
 		public static $result = array();
+		/**
+		 * 首页需要探索的url
+		 * @var array
+		 */
+		public static $urls = array();
+		/**
+		 * url待爬队列
+		 */
 
+		/**
+		 * 已爬队列
+		 */
 		/**
 		 * 数据库方面的变量
 		 */
@@ -113,11 +136,22 @@
 			 * 配置解析规则
 			 */
 			self::$selector = empty($config['rule'])?log::info('Deletion rule','config error ',self::ERROR_LEVEL_2):$config['rule'];
-			
+			/**
+			 * 配置首页url抓取模式
+			 */
+			self::$first = empty($config['first'])?log::info('Deletion first','config error ',self::ERROR_LEVEL_2):$config['first'];
+			/**
+			 * 配置首页url抓取条数
+			 */
+			self::$count = empty($config['counts'])?log::info('Deletion count','config error ',self::ERROR_LEVEL_2):$config['counts'];
 			/**
 			 * 配置抓取模式
 			 */
 			self::$method = empty($config['method'])?log::info('Deletion method','config error ',self::ERROR_LEVEL_2):$config['method'];
+			/**
+			 * 配置topic
+			 */
+			self::$topic = empty($config['topic'])?log::info('Deletion topic','config error ',self::ERROR_LEVEL_2):$config['topic'];
 
 			/**
 			 * 配置请求头信息
@@ -156,12 +190,18 @@
 			//此时解析的为一个页面中所有的同一类的信息
 			foreach($selector as $value){
 				//print_r(Analysis::Parser($html,$value['selector'],$type));
-				$tempInformation = Analysis::Parser($html,$value['selector'],$type);
+				$tempInformation = Analysis::Parser($html,$value['selector'],$value['parser']);
 
 				//print_r($tempInformation);
 				for($i = 0;$i<count($tempInformation);$i++){
-					$result[$i][$value['name']] = trim($tempInformation[$i]);
-					$result[$i]['Time'] =  date('Y-m-d H:i:s',time());
+					if($value['name'] == "content"){
+						$result[$i][$value['name']] = trim($tempInformation[$i]);
+					}else{
+						$result[$i][$value['name']] = trim($tempInformation[$i]);
+					}
+					$result[$i]['user_id'] =  1;
+					$result[$i]['created_at'] =  date('Y-m-d H:i:s',time());
+					$result[$i]['updated_at'] =  date('Y-m-d H:i:s',time());
 				}
 			}
 			self::$result = $result;
@@ -188,6 +228,7 @@
 
 		public static function insertDatabase($name,$data){
 			if(mysql::insert($name,$data)===1){
+				mysql::autoElo('article_topic',self::$topic);
 				log::info('data insert done','[ info ]',1);
 			}
 		}
@@ -203,9 +244,10 @@
 			//获取url的html信息
 			self::Relay($url);
 			//提取信息
+			// echo self::$html;
 			self::get_select(self::$html,self::$selector,self::$parser);
 			//存入数据库
-			//print_r(self::$result);
+			// print_r(self::$result);
 			self::insertDatabase(self::$name,self::$result);
 			/*爬虫流程结束*/
 			$etime=microtime(true);//获取程序执行结束的时间
@@ -219,17 +261,62 @@
 		 */
 		public static function Increasing(){
 			$stime=microtime(true); 
+
 			// 609
-			for($i = 102664;$i<200000;$i++){
-				$url  = self::$url.$i.'/';
-				self::CrawlerRun($url);
-			}
+			// for($i = 82101;$i<84101;$i++){
+			// 	$url  = self::$url.$i.'/';
+			// 	self::CrawlerRun($url);
+			// }
 			// $url  = self::$url.'100005'.'/';
-			self::CrawlerRun($url);
+			// 首先获取首页的url
+			self::homepaegsUrl(self::$url);
+			// self::CrawlerRun(self::$url);
 			$etime=microtime(true);//获取程序执行结束的时间
 			$total=$etime-$stime;  
 			log::info('Crawler over,time:'.$total,'[ info ]',1);
 		}
+
+
+		public static function Breadth(){
+			//先读取首页的主要URL
+			self::homepaegsUrl(self::$url);
+		}
+
+		public static function homepaegsUrl($url){
+			self::Relay($url);
+			foreach (self::$first as $value) {
+				for($i = 1; $i<=self::$count;$i++){
+					$tempURL = str_replace('$id',$i,$value['selector']);
+					// echo $tempURL;
+					self::addUrl(Analysis::Parser(self::$html,$tempURL,'Xpath')[0]);
+				}
+			}
+			foreach (self::$urls as $value) {
+				$stime=microtime(true); 
+				self::CrawlerRun($value);
+				$etime=microtime(true);//获取程序执行结束的时间
+				$total=$etime-$stime;  
+				log::info('Crawler over,time:'.$total,'[ info ]',1);
+			}
+			log::info('Crawler down','[ info ]',1);
+		}
+
+		/**
+		 * 插入队列
+		 * @param string $url 新连接
+		 */
+		public static function addUrl($url){
+			array_push(self::$urls,self::$url.$url);
+		}
+		/**
+		 * 移除队列
+		 * @param  string $url 连接
+		 */
+		public static function removeUrl($url){
+
+		}
+
+
 
 		/**
 		 * 爬取规则选择中心
@@ -239,7 +326,9 @@
 				case 'Increasing':
 					self::Increasing();
 					break;
-
+				case 'Breadth':
+					self::Breadth();
+					break;		
 			};
 		}
 

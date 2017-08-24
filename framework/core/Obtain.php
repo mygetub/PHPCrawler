@@ -52,6 +52,9 @@
 	        curl_setopt(self::$ch, CURLOPT_COOKIEJAR, $cookie); 
 	        //只需要设置一个秒的数量就可以  
 	        curl_setopt(self::$ch, CURLOPT_TIMEOUT,5);   
+	        
+		    curl_setopt(self::$ch, CURLOPT_SSL_VERIFYPEER, 0); // 对认证证书来源的检查  
+		    curl_setopt(self::$ch, CURLOPT_SSL_VERIFYHOST, 1); // 从证书中检查SSL加密算法是否存在 
 	        //post方式提交
 	        //curl_setopt(self::$curl, CURLOPT_POST, 1);
 	        //要提交的信息 

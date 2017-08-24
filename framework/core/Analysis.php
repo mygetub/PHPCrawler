@@ -81,22 +81,24 @@
 		 */
 		public static function Reg_select($html,$selector){
 			// preg_match_all("|<[^>]+>(.*)</[^>]+>|U", $str, $matchs);
-			// log::info('Reg init...','[ info ]',1);
+			log::info('Reg init...','[ info ]',1);
+			
+
 			if(preg_match_all($selector, $html, $out) === false)
 	        {
 	            log::info("the selector in the Reg (\"{$selector}\") ",'[ syntax errors ]',2);
 	        }
-			// log::info('Reg done','[ info ]',1);
-
+			log::info('Reg done','[ info ]',1);
+			
 	        return $out[0];
 
 		}
 
 
 		/**
-		 * 正则表达式解析器
+		 * Simple解析器
 		 * @param string $html     html代码
-		 * @param string $selector 正则表达式
+		 * @param string $selector Simple表达式
      	 * @created time :2017年3月1日20:45:17
 		 */
 		public static function Simple_select($html,$selector){
@@ -105,8 +107,7 @@
 			// 从字符串中加载
 			$simple->load($html);
 			//读取信息
-			$info = $simple->find('#nav');
-			// echo $html;
+			$info = $simple->find($selector);
 			$simple->clear();
 			return $info;
 		}

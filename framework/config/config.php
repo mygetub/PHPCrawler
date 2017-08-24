@@ -4,5 +4,5 @@
 	    'port'  => 3306,
 	    'dbuser'  => 'root',
 	    'dbpsw'  => 'root',
-	    'dbname'  => 'phpcrawler'
+	    'dbname'  => 'discussion'
 	);

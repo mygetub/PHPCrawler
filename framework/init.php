@@ -12,7 +12,7 @@
 	//----------------------------------
 	
 	// 严格开发模式
-	error_reporting( E_ALL );
+	error_reporting( E_ALL & ~E_NOTICE & ~E_WARNING );
 
 	// 设置时区
 	date_default_timezone_set('Asia/Shanghai');
