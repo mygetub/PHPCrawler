@@ -79,6 +79,10 @@
 		 */
 		public static $topic = 0;
 		/**
+		 * 是否需要连接域名
+		 */
+		public static $link = false;
+		/**
 		 * 请求头信息
 		 * @var array
 		 */
@@ -94,6 +98,7 @@
 		 * @var array
 		 */
 		public static $urls = array();
+		public static $prefix = '';
 		/**
 		 * url待爬队列
 		 */
@@ -152,6 +157,11 @@
 			 * 配置topic
 			 */
 			self::$topic = empty($config['topic'])?log::info('Deletion topic','config error ',self::ERROR_LEVEL_2):$config['topic'];
+			self::$prefix = $config['prefix'];
+			/**
+			 * 配置link
+			 */
+			self::$link = $config['link'];
 
 			/**
 			 * 配置请求头信息
@@ -167,8 +177,8 @@
 			$Obtain = new Obtain();
 			self::$html = $Obtain::Request($url,self::$config,self::$configs['cookie']);
 			if(self::$html === FALSE){
-				log::info( "cURL 具体出错信息: " . curl_error(Obtain::$ch),' curl error ',self::ERROR_LEVEL_1);
-				self::Relay($url);
+				log::info( "cURL 具体出错信息: " . curl_error(Obtain::$ch),' curl error ',self::ERROR_LEVEL_2);
+				// self::Relay($url);
 			}
 			//web页面解析完成
 			log::info('Web analysis complete','[ info ]',1);
@@ -183,7 +193,7 @@
 		 * @param  string $type 解析选择类型
      	 * @created time :2017年2月23日14:20:27
 		 */
-		public static function get_select($html,$selector,$type){
+		public static function get_select($url,$html,$selector,$type){
 			log::info($type.' init... ','[ info ]',1);
 			$result = array();
 			//解析选择规则
@@ -195,7 +205,7 @@
 				//print_r($tempInformation);
 				for($i = 0;$i<count($tempInformation);$i++){
 					if($value['name'] == "content"){
-						$result[$i][$value['name']] = trim($tempInformation[$i]);
+						$result[$i][$value['name']] = trim($tempInformation[$i]).'<blockquote class="content mt-25" style="box-sizing: border-box; padding: 11px 22px; margin: 25px 0px 22px; font-size: 16px; border-left-width: 5px; border-left-color: rgb(238, 238, 238); color: rgb(47, 47, 47); font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;WenQuanYi Micro Hei&quot;, &quot;Microsoft Yahei&quot;, sans-serif; white-space: normal; background-color: rgb(255, 255, 255);">- 原文:&nbsp;<a href="'.$url.'" target="_blank" style="box-sizing: border-box; background-color: transparent; color: rgb(15, 136, 235);">'.$url.'</a>&nbsp;-</blockquote>';
 					}else{
 						$result[$i][$value['name']] = trim($tempInformation[$i]);
 					}
@@ -245,7 +255,7 @@
 			self::Relay($url);
 			//提取信息
 			// echo self::$html;
-			self::get_select(self::$html,self::$selector,self::$parser);
+			self::get_select($url,self::$html,self::$selector,self::$parser);
 			//存入数据库
 			// print_r(self::$result);
 			self::insertDatabase(self::$name,self::$result);
@@ -288,7 +298,7 @@
 				for($i = 1; $i<=self::$count;$i++){
 					$tempURL = str_replace('$id',$i,$value['selector']);
 					// echo $tempURL;
-					self::addUrl(Analysis::Parser(self::$html,$tempURL,'Xpath')[0]);
+					self::addUrl(self::$prefix.Analysis::Parser(self::$html,$tempURL,'Xpath')[0]);
 				}
 			}
 			foreach (self::$urls as $value) {
@@ -306,7 +316,11 @@
 		 * @param string $url 新连接
 		 */
 		public static function addUrl($url){
-			array_push(self::$urls,self::$url.$url);
+			if(self::$link){
+				array_push(self::$urls,self::$url.$url);
+			}else{
+				array_push(self::$urls,$url);
+			}
 		}
 		/**
 		 * 移除队列

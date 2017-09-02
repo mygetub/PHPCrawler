@@ -9,7 +9,7 @@
 		// 当前爬虫的名字也是数据表的名字建议使用英文
 		'name' => 'articles',
 		// 入口url
-		'url' => 'https://www.lszj.com',
+		'url' => 'http://w.ihx.cc/',
 		//解析器
 		//Reg:正则表达式解析器
 		//Xpath：xpath解析器
@@ -22,7 +22,7 @@
 			array(
 				'name'=>'title',
 				// 'selector' => '/<h1>.*?<\/h1>/ism',
-				'selector'=>'//*[@id="cont"]/h1',
+				'selector'=>'//*[@id="the-post"]/div[2]/h1/span',
 				// 'selector'=>'#cont h1',
 				//数据类型
 				'type'=>'varchar(255)',
@@ -30,7 +30,7 @@
 			),
 			array(
 				'name'=>'content',
-				'selector' => '/<div class="cont-main clearfix".*?>.*?<\/div>/ism',
+				'selector' => '/<div class="article_text".*?>.*?<\/div>/ism',
 				// 'selector'=>'//*[@id="cont"]/div[2]',
 				// 'selector'=>'#cont .cont-main',
 				//数据类型
@@ -111,22 +111,17 @@
 		 */
 		'first' => array(
 			array(
-				'selector' => '/html/body/div[4]/div[2]/div[2]/div[1]/ul/li[$id]/a/@href'
-			),
-			array(
-				'selector' => '/html/body/div[4]/div[2]/div[2]/div[2]/ul/li[$id]/a/@href'
-			), 
-			array(
-				'selector' => '//*[@id="lsrw"]/div[2]/div[1]/ul/li[$id]/a/@href'
-			),
-			array(
-				'selector' => '//*[@id="lsrw"]/div[2]/div[2]/ul/li[$id]/a/@href'
+				'selector' => '//*[@id="main-content"]/section[1]/div/div[$id]/h2/a/@href'
 			),
 		),
 		// 'first' => '.index-top-main',
-		'prefix' => 'https://www.lszj.com/',
-		'counts' => 4,
-		'topic'  => 1
+		// 循环次数
+		'counts' => 8,
+		// 存放标签
+		'topic'  => 1,
+		//是否需要连接域名
+		'link' => false
+
 	);
 	$init = new PHPCrawler($config);
 	$init::run();
