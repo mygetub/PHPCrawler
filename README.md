@@ -1,7 +1,7 @@
 <p align="center"><a href="https://github.com/fsdstar/PHPCrawler" target="_blank"><img width="200"src="http://www.fsdstar.com/images/myicon.jpg"></a></p>
  
  <p align="center">
-  <a href="https://github.com/fsdstar/PHPCrawler/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-4EB1BA.svg?style=flat-square" alt="Build Status"></a>
+  <a href="#"><img src="https://img.shields.io/badge/license-MIT-4EB1BA.svg?style=flat-square" alt="Build Status"></a>
   <a href="#"><img src="https://img.shields.io/badge/version-1.0.1-red.svg?style=flat-square" alt="Sauce Test Status"></a>
 </p>
 
