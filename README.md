@@ -77,5 +77,6 @@ $ php start.php
 接下来就可以看到抓取的日志了。
 
 
-更多详细内容，请查看 [文档](http://doc.fsdstar.com)
+更多详细内容，请查看 [文档](http://doc.fsdstar.com)  
+
 更多功能还在开发中，敬请期待￣□￣｜｜
