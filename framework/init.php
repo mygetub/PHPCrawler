@@ -20,7 +20,11 @@
 	// 永不超时
 	ini_set('max_execution_time', 0);
 
-
+	if( PHP_SAPI != 'cli' )
+	{
+	    exit("You must run the CLI environment\n");
+	}
+	
 	//核心库目录
 	define('CORE', dirname(__FILE__));
 
@@ -30,6 +34,7 @@
 	{
 	    require CORE."/config/config.php"; 
 	}
+	require_once(__DIR__ . '/../vendor/autoload.php');
 	//加载核心文件
 	require CORE.'/core/PHPCrawler.php';
 	require CORE.'/core/Log.php';
@@ -37,3 +42,9 @@
 	require CORE.'/core/Analysis.php';
 	require CORE.'/core/Database.php';
 	require CORE.'/core/simple_html_dom.php';
+	require CORE.'/core/queue/queueInterface.php';
+	require CORE.'/core/queue/defaultQueue.php';
+	require CORE.'/core/queue/redisQueue.php';
+	require CORE.'/core/stack/stackInterface.php';
+	require CORE.'/core/stack/defaultStack.php';
+	// require CORE.'/core/queue/redisQueue.php';

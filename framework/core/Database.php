@@ -15,6 +15,20 @@
 		
 		//pdo对象
 		public static $pdo = null;
+
+		//type类型
+		public static $types = array(
+			'varchar(255)',
+			'int',
+			'text',
+			'DATETIME',
+		);
+		
+
+
+
+
+
 		/**
 		 * 创建pdo连接
 		 * @return [type] [description]
@@ -41,28 +55,6 @@
 		public static function insert($name,$data){
 			$keys = array();
 			$values = array();
-			for($i = 0;$i<count($data);$i++){
-				foreach ($data[$i] as $key => $value) {
-					array_push($keys, $key);
-					array_push($values, is_string($value)? '\''.addslashes($value).'\'':addslashes($value));
-				}
-			}
-			$sql = 'INSERT INTO '.$name.' ('.implode(', ', $keys).') VALUES ('.implode(', ', $values).')';
-			return self::sqlRun($sql);
-			// return $sql;
-		}
-
-		/**
-		 * 添加自动关联
-		 * @return [type] [description]
-		 */
-		public static function autoElo($name,$topic_id){
-			$data = array('article_id' => self::$pdo->lastInsertId(),
-						  'topic_id'=>$topic_id,
-						  'created_at' => date('Y-m-d H:i:s',time()),
-						  'updated_at' => date('Y-m-d H:i:s',time()),);
-			$keys = array();
-			$values = array();
 			foreach ($data as $key => $value) {
 				array_push($keys, $key);
 				array_push($values, is_string($value)? '\''.addslashes($value).'\'':addslashes($value));
@@ -70,6 +62,25 @@
 			$sql = 'INSERT INTO '.$name.' ('.implode(', ', $keys).') VALUES ('.implode(', ', $values).')';
 			return self::sqlRun($sql);
 		}
+
+		/**
+		 * 添加自动关联
+		 * @return [type] [description]
+		 */
+		// public static function autoElo($name,$topic_id){
+		// 	$data = array('article_id' => self::$pdo->lastInsertId(),
+		// 				  'topic_id'=>$topic_id,
+		// 				  'created_at' => date('Y-m-d H:i:s',time()),
+		// 				  'updated_at' => date('Y-m-d H:i:s',time()),);
+		// 	$keys = array();
+		// 	$values = array();
+		// 	foreach ($data as $key => $value) {
+		// 		array_push($keys, $key);
+		// 		array_push($values, is_string($value)? '\''.addslashes($value).'\'':addslashes($value));
+		// 	}
+		// 	$sql = 'INSERT INTO '.$name.' ('.implode(', ', $keys).') VALUES ('.implode(', ', $values).')';
+		// 	return self::sqlRun($sql);
+		// }
 
 		/**
 		 * [delete 删除数据]
@@ -204,12 +215,11 @@
 			 * }
 			 */
 			$sql = 'create table '.$column["name"].'(id int primary key auto_increment not null UNIQUE,';
-			for($i = 0;$i<count($column['rule']);$i++){
-				$sql.= $column['rule'][$i]['name'].' '.$column['rule'][$i]['type'].' , ';
+			for($i = 0;$i<count($column['table']);$i++){
+				$sql.= $column['table'][$i]['column'].' '.self::$types[$column['table'][$i]['type']].' , ';
 			}
 			$sql = substr($sql,0,strlen($sql)-2).' ) ';
 			self::sqlRun($sql); 
-			 // return $sql;
 		}
 		/**
 		 * 用于处理数据库操作时错误情况

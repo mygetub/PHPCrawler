@@ -47,10 +47,6 @@
 		 */
 		public static $url = '';
 		/**
-		 * 解析器选择
-		 */
-		public static $parser = '';
-		/**
 		 * 抓取模式
 		 */
 		public static $method = '';
@@ -65,19 +61,11 @@
 		/**
 		 * 获得选取规则
 		 */
-		public static $selector = '';
+		// public static $selector = '';
 		/**
 		 * 首页规则URL
 		 */
-		public static $first = '';
-		/**
-		 * 爬取首页多少条URL
-		 */
-		public static $count = 0;
-		/**
-		 * 标签id
-		 */
-		public static $topic = 0;
+		public static $urlSelector = '';
 		/**
 		 * 是否需要连接域名
 		 */
@@ -94,22 +82,46 @@
 		 */
 		public static $result = array();
 		/**
-		 * 首页需要探索的url
+		 * 队列模式
 		 * @var array
 		 */
-		public static $urls = array();
-		public static $prefix = '';
+		public static $urlQueue = [];
+		public static $urlQueueKey = 'url';
 		/**
-		 * url待爬队列
+		 * 匹配规则
+		 * @var array
 		 */
+		public static $selectorQueue = [];
+		public static $selectorQueueKey = 'selector';
+		/**
+		 * html栈
+		 * @var array
+		 */
+		public static $htmlQueue = [];
+		public static $htmlQueueKey = 'html';
+
+
+		public static $currentUrl = '';
 
 		/**
-		 * 已爬队列
+		 * 已爬url的个数
 		 */
+		public static $urls = 0;
 		/**
 		 * 数据库方面的变量
 		 */
 		// public static db_ = FALSE;
+
+		//钩子函数
+		public static $hooks = [
+			'beforeDownloadPageHooks',
+			'downloadPageHooks',
+			'afterDownloadPageHooks',
+			'discoverUrlHooks',
+			'afterDiscoverHooks',
+		];
+		public  $customRenderData = [];
+		public  $customRenderDataHooks = [];
 
 		function __construct($config){
 			self::$configs = $config;
@@ -121,43 +133,23 @@
 			 * Spider is started,Please wait...
 			 */
 			$header = "[ ".$config['name']." Spider ] \n";
-			$header .= "\t".self::PHPCrawler." Version :".self::VERISON."\n";
-			$header .= "\tTask Number: ".self::$taskNumber."\n";
-			$header .= "\tSpider is started,Please wait... \n";
+			$header .= self::PHPCrawler." Version :".self::VERISON."\n";
+			$header .= "Task Number: ".self::$taskNumber."\n";
+			$header .= "Spider is started,Please wait... \n";
 			log::output($header,self::ERROR_LEVEL_1);
 			/**
 			 * 配置爬虫名称
 			 */
 			self::$name = empty($config['name'])?log::info('Deletion name','config error ',self::ERROR_LEVEL_2):$config['name'];
+			self::$url = empty($config['url'])?'':$config['url'];
 			/**
-			 * 配置入口url
+			 * 配置url解析规则
 			 */
-			self::$url = empty($config['url'])?log::info('Deletion URL','config error ',self::ERROR_LEVEL_2):$config['url'];
-			/**
-			 * 配置解析器
-			 */
-			self::$parser = empty($config['parser'])?log::info('Deletion parser','config error ',self::ERROR_LEVEL_2):$config['parser'];
-			/**
-			 * 配置解析规则
-			 */
-			self::$selector = empty($config['rule'])?log::info('Deletion rule','config error ',self::ERROR_LEVEL_2):$config['rule'];
-			/**
-			 * 配置首页url抓取模式
-			 */
-			self::$first = empty($config['first'])?log::info('Deletion first','config error ',self::ERROR_LEVEL_2):$config['first'];
-			/**
-			 * 配置首页url抓取条数
-			 */
-			self::$count = empty($config['counts'])?log::info('Deletion count','config error ',self::ERROR_LEVEL_2):$config['counts'];
+			self::$urlSelector = empty($config['urlSelector'])?'':$config['urlSelector'];
 			/**
 			 * 配置抓取模式
 			 */
-			self::$method = empty($config['method'])?log::info('Deletion method','config error ',self::ERROR_LEVEL_2):$config['method'];
-			/**
-			 * 配置topic
-			 */
-			self::$topic = empty($config['topic'])?log::info('Deletion topic','config error ',self::ERROR_LEVEL_2):$config['topic'];
-			self::$prefix = $config['prefix'];
+			self::$method = empty($config['method'])?'':$config['method'];
 			/**
 			 * 配置link
 			 */
@@ -167,55 +159,44 @@
 			 * 配置请求头信息
 			 */
 			self::$config['User-Agent'] = empty($config['User-Agent'])?self::AGENT_PC:$config['User-Agent'];
+			/**
+			 * 配置匹配规则队列模式
+			 * 配置URL队列模式
+			 */
+			self::$selectorQueue = empty($config['queue'])?new defaultQueue() : new $config['queue'];
+			 self::$urlQueue = empty($config['queue'])?new defaultQueue() : new $config['queue'];
+			self::$htmlQueue = empty($config['queue'])?new defaultQueue() : new $config['queue'];
+
+			if ($this->customRenderData) {
+				$this->customRenderDataHooks[] = $this->customRenderData;
+	        }
 			log::info('The initialization is done ','[ info ]',self::ERROR_LEVEL_1);
 		}
 		/**
 		 * 获得url的html
+		 * return 返回具体的Html代码
 		 */
 		public static function Relay($url){
-			// log::info('relay','[ info ]',self::ERROR_LEVEL_1);
-			$Obtain = new Obtain();
-			self::$html = $Obtain::Request($url,self::$config,self::$configs['cookie']);
-			if(self::$html === FALSE){
-				log::info( "cURL 具体出错信息: " . curl_error(Obtain::$ch),' curl error ',self::ERROR_LEVEL_2);
-				// self::Relay($url);
+			$html = Obtain::Request($url,self::$config,self::$configs['cookie']);
+			if($html === FALSE){
+				log::info( "cURL error info: " . curl_error(Obtain::$ch),' curl error ',self::ERROR_LEVEL_1);
 			}
 			//web页面解析完成
 			log::info('Web analysis complete','[ info ]',1);
-			return;
-			//log::info(self::$html,'[ info ]',self::ERROR_LEVEL_1);
+			return $html;
 		} 
 
 		/**
 		 * 选择解析器解析html并将结果返回给
 		 * @param  string $html     html代码
 		 * @param  [type] $selector Xpath规则
-		 * @param  string $type 解析选择类型
+		 * @param  string $type 解析选择类型(默认Xpath)
      	 * @created time :2017年2月23日14:20:27
 		 */
-		public static function get_select($url,$html,$selector,$type){
-			log::info($type.' init... ','[ info ]',1);
-			$result = array();
-			//解析选择规则
-			//此时解析的为一个页面中所有的同一类的信息
-			foreach($selector as $value){
-				//print_r(Analysis::Parser($html,$value['selector'],$type));
-				$tempInformation = Analysis::Parser($html,$value['selector'],$value['parser']);
-
-				//print_r($tempInformation);
-				for($i = 0;$i<count($tempInformation);$i++){
-					if($value['name'] == "content"){
-						$result[$i][$value['name']] = trim($tempInformation[$i]).'<blockquote class="content mt-25" style="box-sizing: border-box; padding: 11px 22px; margin: 25px 0px 22px; font-size: 16px; border-left-width: 5px; border-left-color: rgb(238, 238, 238); color: rgb(47, 47, 47); font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;WenQuanYi Micro Hei&quot;, &quot;Microsoft Yahei&quot;, sans-serif; white-space: normal; background-color: rgb(255, 255, 255);">- 原文:&nbsp;<a href="'.$url.'" target="_blank" style="box-sizing: border-box; background-color: transparent; color: rgb(15, 136, 235);">'.$url.'</a>&nbsp;-</blockquote>';
-					}else{
-						$result[$i][$value['name']] = trim($tempInformation[$i]);
-					}
-					$result[$i]['user_id'] =  1;
-					$result[$i]['created_at'] =  date('Y-m-d H:i:s',time());
-					$result[$i]['updated_at'] =  date('Y-m-d H:i:s',time());
-				}
-			}
-			self::$result = $result;
+		public static function get_select($html,$selector,$type = 'Xpath'){
+			$tempInformation = Analysis::Parser($html,$selector,$type);
 			log::info($type.' done ','[ info ]',1);
+			return $tempInformation;
 		}
 
 		/**
@@ -238,31 +219,34 @@
 
 		public static function insertDatabase($name,$data){
 			if(mysql::insert($name,$data)===1){
-				mysql::autoElo('article_topic',self::$topic);
+				// mysql::autoElo('article_topic',self::$topic);
 				log::info('data insert done','[ info ]',1);
 			}
 		}
 
 		/**
 		 * 爬虫运行中心
+		 * 根据爬取队列来调用钩子函数
 		 */
 		public static function CrawlerRun($url){
-			$stime=microtime(true); 
-			//self::$url  = self::$url.'123'.'/';
-			log::info('Crawling link:'.$url,'[ info ]',1);
-			/*爬虫流程开始*/
-			//获取url的html信息
-			self::Relay($url);
-			//提取信息
-			// echo self::$html;
-			self::get_select($url,self::$html,self::$selector,self::$parser);
-			//存入数据库
-			// print_r(self::$result);
-			self::insertDatabase(self::$name,self::$result);
-			/*爬虫流程结束*/
-			$etime=microtime(true);//获取程序执行结束的时间
-			$total=$etime-$stime;  
-			log::info('Crawling link:'.$url.'done,execution time:'.$total,'[ info ]',1);
+			// $stime=microtime(true); 
+			// //self::$url  = self::$url.'123'.'/';
+			// log::info('Crawling link:'.$url,'[ info ]',1);
+			// /*爬虫流程开始*/
+			// //获取url的html信息
+			// self::Relay($url);
+			// //提取信息
+			// // echo self::$html;
+			// self::get_select($url,self::$html,self::$selector,self::$parser);
+			// //存入数据库
+			// // print_r(self::$result);
+			// self::insertDatabase(self::$name,self::$result);
+			// /*爬虫流程结束*/
+			// $etime=microtime(true);//获取程序执行结束的时间
+			// $total=$etime-$stime;  
+			// log::info('Crawling link:'.$url.'done,execution time:'.$total,'[ info ]',1);
+			call_user_func(self::$hooks[0],$this);
+
 		}
 
 
@@ -287,76 +271,219 @@
 		}
 
 
-		public static function Breadth(){
-			//先读取首页的主要URL
-			self::homepaegsUrl(self::$url);
-		}
-
-		public static function homepaegsUrl($url){
-			self::Relay($url);
-			foreach (self::$first as $value) {
-				for($i = 1; $i<=self::$count;$i++){
-					$tempURL = str_replace('$id',$i,$value['selector']);
-					// echo $tempURL;
-					self::addUrl(self::$prefix.Analysis::Parser(self::$html,$tempURL,'Xpath')[0]);
-				}
-			}
-			foreach (self::$urls as $value) {
-				$stime=microtime(true); 
-				self::CrawlerRun($value);
-				$etime=microtime(true);//获取程序执行结束的时间
-				$total=$etime-$stime;  
-				log::info('Crawler over,time:'.$total,'[ info ]',1);
-			}
-			log::info('Crawler down','[ info ]',1);
-		}
-
-		/**
-		 * 插入队列
-		 * @param string $url 新连接
-		 */
-		public static function addUrl($url){
-			if(self::$link){
-				array_push(self::$urls,self::$url.$url);
-			}else{
-				array_push(self::$urls,$url);
-			}
-		}
-		/**
-		 * 移除队列
-		 * @param  string $url 连接
-		 */
-		public static function removeUrl($url){
-
-		}
-
-
 
 		/**
 		 * 爬取规则选择中心
 		 */
 		public static function CrawlerSelector(){
-			switch(self::$method){
-				case 'Increasing':
-					self::Increasing();
-					break;
-				case 'Breadth':
-					self::Breadth();
-					break;		
-			};
+			if(self::$method){
+				call_user_func(array(PHPCrawler , self::$method),self::$urlSelector);
+			}
 		}
 
 		/**
 		 * 爬虫运行中心
+		 * 根据URL回调钩子函数
 		 * @return [type] [description]
 		 */
 		public static function run(){
-			//初始化数据库
-			self::initDatabase(self::$configs);
-			//选择抓取模式
-			self::CrawlerSelector();
+			self::startWorker();
+			while (!self::$urlQueue->isEmpty(self::$urlQueueKey)) {
+				foreach (self::$hooks as $value) {
+					call_user_func(array(PHPCrawler,$value));
+				}
+			}
+			self::endWorker();
 						
 		}
 
+		/**
+		 * 开始工作准备阶段
+		 * 初始化数据库
+		 * 初始化爬取模式
+		 */
+		public static function startWorker(){
+			//--------------------------------------------------------------------------------
+	        // 运行前验证
+	        //--------------------------------------------------------------------------------
 
+	        // 检查PHP版本
+	        if (version_compare(PHP_VERSION, '5.3.0', 'lt')) 
+	        {
+	            log::info('PHP 5.3+ is required, currently installed version is: ' . phpversion(),' PHPCrawler system ',self::ERROR_LEVEL_2);
+	        }
+
+	        // 检查CURL扩展
+	        if(!function_exists('curl_init'))
+	        {
+	            log::info('The curl extension was not found',' PHPCrawler system ',self::ERROR_LEVEL_2);
+	        }
+			//初始化数据库
+			self::initDatabase(self::$configs);
+			//初始化抓取规则
+			self::CrawlerSelector();
+			// 将首页放置于队列中
+			if(!empty(self::$url)){
+				self::$urlQueue->inQueue(self::$url,self::$urlQueueKey);	
+			}
+		}
+
+		/**
+		 * 获得页面的html之前所做的事
+		 * 出队URL
+		 */
+		public static function beforeDownloadPageHooks(){
+			log::output('urls:'.self::$urls,self::ERROR_LEVEL_1) ;
+			log::output('Surplus urls:'.self::$urlQueue->counts(self::$urlQueueKey),self::ERROR_LEVEL_1) ;
+			log::output('Speed of progress:'.(round(self::$urls/(self::$urls+self::$urlQueue->counts(self::$urlQueueKey)),2)*100).'%',self::ERROR_LEVEL_1) ;
+			log::output('task:'.self::$selectorQueue->next(self::$selectorQueueKey)['task'],self::ERROR_LEVEL_1) ;
+			// print_r(self::$selectorQueue->show());
+			self::$currentUrl = self::$urlQueue->outQueue(self::$urlQueueKey);
+			log::output('url:'.self::$currentUrl,self::ERROR_LEVEL_1) ;
+
+			self::$urls++;
+			
+		}
+		/**
+		 * 获取到需要爬取的URL则进行获取HTML
+		 * 并将其插入html栈中
+		 */
+		public static function downloadPageHooks(){
+			self::$html = self::Relay(self::$currentUrl);
+			// echo self::Relay(self::$currentUrl);
+		}
+		/**
+		 * 获得页面的html之后所做的事
+		 * 判断该selector是否带有html
+		 * 如果没有则进行抓取信息入库
+		 */
+		public static function afterDownloadPageHooks(){
+			
+			// 确定一直找到连接选择器才退出
+			$option =  self::$selectorQueue->next(self::$selectorQueueKey);
+			$re = [];
+			for ($i = 0 ;$i < self::$selectorQueue->counts(self::$selectorQueueKey);$i++) {
+
+				if($option['childer']|| $option['next']){
+					return ;
+				}
+				//如果是正常的匹配则如果页面存在则，抓取信息
+				// $html = self::$htmlQueue->outQueue(self::$name);
+				$option =  self::$selectorQueue->outQueue(self::$selectorQueueKey);
+				if(!empty(self::$html)){
+					$result = self::get_select(self::$html,$option['selector'],empty($option['parser'])?'Xpath':$option['parser']);
+					//如果为空则证明没有后续了则直接跳出
+					if(count($result)===0){
+						return ;
+					}
+					//如果连续
+					$re[$option['column']] = $result[0];
+					// print_r($result);
+					// call_user_func($this->customRenderDataHooks,$result);
+				}
+				// self::insertDatabase(self::$name,$re);
+				$temp =  self::$selectorQueue->next(self::$selectorQueueKey);
+				if($option['repeat']){
+					self::$selectorQueue->inQueue($option,self::$selectorQueueKey);
+				}
+				//如果两个相等则证明没有更多的选择了
+				if(empty(array_diff($option,$temp))){
+					return;
+				}
+				$option = $temp;
+
+				// print_r('23333333');
+			}
+				self::insertDatabase(self::$name,$re);
+				// print_r($re);
+
+
+			
+		}
+		/**
+		 * 发现连接的规则我只需要拿出一个如果下面有children则确定为链接选择器
+		 * @return [type] [description]
+		 */
+		public static function discoverUrlHooks(){
+				$option = self::$selectorQueue->next(self::$selectorQueueKey);
+				if($option['childer'] || $option['next']){
+					if(!$option['repeat']){
+						// self::$selectorQueue->inQueue($option);
+						$option = self::$selectorQueue->outQueue(self::$selectorQueueKey);
+					}
+					// $html = self::$htmlQueue->outQueue(self::$name);
+					if(empty(self::$html)){
+						return ;
+					}
+					$url = $option['mosaic']?self::$url:$option['header'];
+					//这里以后可以优化
+					$result = array_unique(self::get_select(self::$html,$option['selector'],empty($option['parser'])?'Xpath':$option['parser']));
+					print_r($result);
+					foreach ($result as $value) {
+						self::$urlQueue->inQueue($url.$value,self::$urlQueueKey);
+					}
+
+					
+					
+				}
+				
+			// }
+		}
+		public static function afterDiscoverHooks(){
+			log::output('5',self::ERROR_LEVEL_1) ;
+		}
+
+		/**
+		 * 结束
+		 * 初始化数据库
+		 * 初始化爬取模式
+		 */
+		public static function endWorker(){
+			//初始化数据库
+			// self::initDatabase(self::$configs);
+			//选择抓取模式
+			// self::CrawlerSelector();
+			log::info('The PHPCrawler is end ','[ info ]',self::ERROR_LEVEL_1);
+		}
+
+
+
+		/**
+		 * 用于对最终爬取的数据进行加工
+		 * @return [type] [description]
+		 */
+		public static function customRenderData(){
+		}
+
+		/**
+		 * 广度遍历爬取规则
+		 * 爬取所有的规则队列
+		 */
+		public static function breadth(){
+			//先读取首页的主要URL
+			// self::homepaegsUrl(self::$url);
+			echo 'breadth';
+		}
+		/**
+		 * 深度遍历爬取规则
+		 * 爬取所有的规则队列
+		 */
+		public static function depth($urlSelector){
+			foreach ($urlSelector as $value) {
+				$option = [];
+				foreach ($value as $key => $item) {
+					if($key != 'childer'){
+						$option[$key] = $item;
+					}
+				}
+				$option['task'] = self::$taskNumber;
+				// $option['status'] = 0;
+				//判断该选择器是否为连接选择器(1:是，0不是)
+				$option['childer'] = empty($value['childer'])?0:1;
+ 				self::$selectorQueue->inQueue($option,self::$selectorQueueKey);
+				self::$taskNumber++;
+				self::depth($value['childer']);
+				self::$taskNumber--;
+			}
+		}
 	}

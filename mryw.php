@@ -9,16 +9,15 @@
 		// 当前爬虫的名字也是数据表的名字建议使用英文
 		'name' => 'articles',
 		// 入口url
-		'url' => 'http://w.ihx.cc/',
+		'url' => 'https://www.qidian.com',
 		//解析器
 		//Reg:正则表达式解析器
 		//Xpath：xpath解析器
 		//Simple:使用simple_html_dom解析器
-		'parser' => 'Reg',
 		//抓取规则
 		//name:放到数据库中的列名
 		//selector 解析器语法
-		'rule' => array(
+		/*'rule' => array(
 			array(
 				'name'=>'title',
 				// 'selector' => '/<h1>.*?<\/h1>/ism',
@@ -36,27 +35,72 @@
 				'type'=>'text',
 				'parser'=>'Reg'
 			)
-		),
+		),*/
 		'cookie'=>'',
 		//抓取模式
 		/**
-		 * Increasing:递增会在url连接后加数字并以一定的规律进行递增抓取
-		 * Breadth:广度遍历，根据首页的连接依次遍历
+		 * Increasing:单页面爬取
+		 * Breadth:广度遍历，根据爬取url规则由广入深
+		 * Depth:深度遍历,根据爬取url规则由浅入深
 		 */
-		'method' => 'Breadth',
+		'method' => 'depth',
 		/**
-		 * 爬取第一套url然后通过队列来进行
+		 * url的爬取规则
 		 */
-		'first' => array(
+		'urlSelector' => array(
 			array(
-				'selector' => '//*[@id="main-content"]/section[1]/div/div[1]/h2/a/@href'
+				// 'selector' => '/\/\/book.qidian.com\/info\/\d+/ism',
+				'selector' => '/html/body/div[2]/div[6]/div[3]/div/ul/li[1]/strong/a/@href',
+				'header'=> 'https:',
+				// 'mosaic' => true,
+				// 'parser'=>'Reg',
+				'childer' => array(
+					array(
+						'selector' => '//*[@id="readBtn"]/@href',
+						// 'mosaic' => true,
+						'header'=> 'https:',
+						'repeat'=>true,
+						'childer' => array(
+							array(
+								'selector' => '/<h3 class="j_chapterName".*?>.*?<\/h3>/ism',
+								'parser'=>'Reg',
+								'repeat'=>true
+							),
+							array(
+								'selector' => '/<span class="j_updateTime".*?>.*?<\/span>/ism',
+								'parser'=>'Reg',
+								'repeat'=>true
+							),
+							array(
+								'selector'=>'//*[@id="j_chapterNext"]/@href',
+								'header'=> 'https:',
+								'repeat'=>true,
+								//下一页连接
+								'next'=> true
+							)
+							
+							// array(
+							// 	//此时证明我需要很多
+							// 	'selector' => '//*[@id="comicContain"]/li[$id]/img/@src',
+							// 	'field' => 'images',
+							// 	//分隔符
+							// 	'delimiter' => '|'
+							// ),
+							// array(
+							// 	'selector' => '//*[@id="mainControlNext"]/@href',
+							// 	//确定是需要加上首页url
+							// 	'mosaic' => true,
+							// 	//重复使用的规则
+							// 	'repeat' => true
+
+							// )
+						)
+					)
+				)
 			)
-		),
-		// 'first' => '.index-top-main',
-		'prefix' => '',
-		'counts' => 1,
-		'topic'  => 1
+		)
 	);
 	$init = new PHPCrawler($config);
+	$init->customRenderData = 1;
 	$init::run();
 ?>
