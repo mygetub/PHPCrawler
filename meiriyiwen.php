@@ -4,11 +4,9 @@
 		'name' => 'meiriyiwen',
 		'url'	=> 'http://w.ihx.cc/',
 		'method' => 'depth',
-		// 'queue' => 'redisQueue',
 		'table' => array(
 			array(
 				'column' => 'title', 
-				//字段类别(0:字符串，1:数字，2:文章，3:日期)
 				'type' => 0
 			),array(
 				'column' => 'author', 
@@ -41,5 +39,12 @@
 		)
 	);
 	$init = new PHPCrawler($config);
-	$init::run();
+	// $init->update_data = function($re,$page){
+	// 	$re['title'] = '123213';
+	// 	return $re;
+	// };
+	// $init->add_relation = function ($re,$mysql){
+	// 	print_r($mysql::lastId());
+	// };
+	$init->run();
 ?>

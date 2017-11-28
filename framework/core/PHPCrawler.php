@@ -120,8 +120,8 @@
 			'discoverUrlHooks',
 			'afterDiscoverHooks',
 		];
-		public  $customRenderData = [];
-		public  $customRenderDataHooks = [];
+		public $update_data = '';
+		public $add_relation = '';
 
 		function __construct($config){
 			self::$configs = $config;
@@ -166,17 +166,13 @@
 			self::$selectorQueue = empty($config['queue'])?new defaultQueue() : new $config['queue'];
 			 self::$urlQueue = empty($config['queue'])?new defaultQueue() : new $config['queue'];
 			self::$htmlQueue = empty($config['queue'])?new defaultQueue() : new $config['queue'];
-
-			if ($this->customRenderData) {
-				$this->customRenderDataHooks[] = $this->customRenderData;
-	        }
 			log::info('The initialization is done ','[ info ]',self::ERROR_LEVEL_1);
 		}
 		/**
 		 * 获得url的html
 		 * return 返回具体的Html代码
 		 */
-		public static function Relay($url){
+		public function Relay($url){
 			$html = Obtain::Request($url,self::$config,self::$configs['cookie']);
 			if($html === FALSE){
 				log::info( "cURL error info: " . curl_error(Obtain::$ch),' curl error ',self::ERROR_LEVEL_1);
@@ -193,7 +189,7 @@
 		 * @param  string $type 解析选择类型(默认Xpath)
      	 * @created time :2017年2月23日14:20:27
 		 */
-		public static function get_select($html,$selector,$type = 'Xpath'){
+		public function get_select($html,$selector,$type = 'Xpath'){
 			$tempInformation = Analysis::Parser($html,$selector,$type);
 			log::info($type.' done ','[ info ]',1);
 			return $tempInformation;
@@ -203,7 +199,7 @@
 		 * 初始化数据库
 		 * @param  string $data       数据
 		 */
-		public static function initDatabase($data){
+		public function initDatabase($data){
 			//数据库是否创建连接
 			if(!isset(mysql::$pdo)){
 				mysql::connect($GLOBALS['db']);
@@ -217,65 +213,18 @@
 			mysql::connect($GLOBALS['db']);
 		} 
 
-		public static function insertDatabase($name,$data){
+		public function insertDatabase($name,$data){
 			if(mysql::insert($name,$data)===1){
 				// mysql::autoElo('article_topic',self::$topic);
 				log::info('data insert done','[ info ]',1);
 			}
 		}
 
-		/**
-		 * 爬虫运行中心
-		 * 根据爬取队列来调用钩子函数
-		 */
-		public static function CrawlerRun($url){
-			// $stime=microtime(true); 
-			// //self::$url  = self::$url.'123'.'/';
-			// log::info('Crawling link:'.$url,'[ info ]',1);
-			// /*爬虫流程开始*/
-			// //获取url的html信息
-			// self::Relay($url);
-			// //提取信息
-			// // echo self::$html;
-			// self::get_select($url,self::$html,self::$selector,self::$parser);
-			// //存入数据库
-			// // print_r(self::$result);
-			// self::insertDatabase(self::$name,self::$result);
-			// /*爬虫流程结束*/
-			// $etime=microtime(true);//获取程序执行结束的时间
-			// $total=$etime-$stime;  
-			// log::info('Crawling link:'.$url.'done,execution time:'.$total,'[ info ]',1);
-			call_user_func(self::$hooks[0],$this);
-
-		}
-
-
-		/**
-		 * Increasing模式,主要用来分配URL
-		 */
-		public static function Increasing(){
-			$stime=microtime(true); 
-
-			// 609
-			// for($i = 82101;$i<84101;$i++){
-			// 	$url  = self::$url.$i.'/';
-			// 	self::CrawlerRun($url);
-			// }
-			// $url  = self::$url.'100005'.'/';
-			// 首先获取首页的url
-			self::homepaegsUrl(self::$url);
-			// self::CrawlerRun(self::$url);
-			$etime=microtime(true);//获取程序执行结束的时间
-			$total=$etime-$stime;  
-			log::info('Crawler over,time:'.$total,'[ info ]',1);
-		}
-
-
 
 		/**
 		 * 爬取规则选择中心
 		 */
-		public static function CrawlerSelector(){
+		public  function CrawlerSelector(){
 			if(self::$method){
 				call_user_func(array(PHPCrawler , self::$method),self::$urlSelector);
 			}
@@ -286,14 +235,15 @@
 		 * 根据URL回调钩子函数
 		 * @return [type] [description]
 		 */
-		public static function run(){
-			self::startWorker();
+		public function run(){
+			$this->startWorker();
 			while (!self::$urlQueue->isEmpty(self::$urlQueueKey)) {
 				foreach (self::$hooks as $value) {
+					// call_user_func(array(PHPCrawler,$value));
 					call_user_func(array(PHPCrawler,$value));
 				}
 			}
-			self::endWorker();
+			$this->endWorker();
 						
 		}
 
@@ -302,7 +252,7 @@
 		 * 初始化数据库
 		 * 初始化爬取模式
 		 */
-		public static function startWorker(){
+		public function startWorker(){
 			//--------------------------------------------------------------------------------
 	        // 运行前验证
 	        //--------------------------------------------------------------------------------
@@ -319,9 +269,9 @@
 	            log::info('The curl extension was not found',' PHPCrawler system ',self::ERROR_LEVEL_2);
 	        }
 			//初始化数据库
-			self::initDatabase(self::$configs);
+			$this->initDatabase(self::$configs);
 			//初始化抓取规则
-			self::CrawlerSelector();
+			$this->CrawlerSelector();
 			// 将首页放置于队列中
 			if(!empty(self::$url)){
 				self::$urlQueue->inQueue(self::$url,self::$urlQueueKey);	
@@ -332,7 +282,7 @@
 		 * 获得页面的html之前所做的事
 		 * 出队URL
 		 */
-		public static function beforeDownloadPageHooks(){
+		public function beforeDownloadPageHooks(){
 			log::output('urls:'.self::$urls,self::ERROR_LEVEL_1) ;
 			log::output('Surplus urls:'.self::$urlQueue->counts(self::$urlQueueKey),self::ERROR_LEVEL_1) ;
 			log::output('Speed of progress:'.(round(self::$urls/(self::$urls+self::$urlQueue->counts(self::$urlQueueKey)),2)*100).'%',self::ERROR_LEVEL_1) ;
@@ -348,8 +298,8 @@
 		 * 获取到需要爬取的URL则进行获取HTML
 		 * 并将其插入html栈中
 		 */
-		public static function downloadPageHooks(){
-			self::$html = self::Relay(self::$currentUrl);
+		public function downloadPageHooks(){
+			self::$html = $this->Relay(self::$currentUrl);
 			// echo self::Relay(self::$currentUrl);
 		}
 		/**
@@ -357,7 +307,7 @@
 		 * 判断该selector是否带有html
 		 * 如果没有则进行抓取信息入库
 		 */
-		public static function afterDownloadPageHooks(){
+		public function afterDownloadPageHooks(){
 			
 			// 确定一直找到连接选择器才退出
 			$option =  self::$selectorQueue->next(self::$selectorQueueKey);
@@ -371,7 +321,7 @@
 				// $html = self::$htmlQueue->outQueue(self::$name);
 				$option =  self::$selectorQueue->outQueue(self::$selectorQueueKey);
 				if(!empty(self::$html)){
-					$result = self::get_select(self::$html,$option['selector'],empty($option['parser'])?'Xpath':$option['parser']);
+					$result = $this->get_select(self::$html,$option['selector'],empty($option['parser'])?'Xpath':$option['parser']);
 					//如果为空则证明没有后续了则直接跳出
 					if(count($result)===0){
 						return ;
@@ -379,7 +329,7 @@
 					//如果连续
 					$re[$option['column']] = $result[0];
 					// print_r($result);
-					// call_user_func($this->customRenderDataHooks,$result);
+					// call_user_func($this->update_dataHooks,$result);
 				}
 				// self::insertDatabase(self::$name,$re);
 				$temp =  self::$selectorQueue->next(self::$selectorQueueKey);
@@ -392,11 +342,17 @@
 				}
 				$option = $temp;
 
-				// print_r('23333333');
 			}
-				self::insertDatabase(self::$name,$re);
-				// print_r($re);
-
+			$page['url'] = self::$currentUrl;
+			//可以执行数据渲染回调函数对数据进行自定义渲染
+			$return = call_user_func($this->update_data,$re,$page);
+			//如果没有return则不变
+			if (isset($return)) $re = $return;
+			//插入数据库
+			$this->insertDatabase(self::$name,$re);
+			//执行添加关联回调函数
+			call_user_func($this->add_relation,$re,new mysql());
+			
 
 			
 		}
@@ -404,7 +360,7 @@
 		 * 发现连接的规则我只需要拿出一个如果下面有children则确定为链接选择器
 		 * @return [type] [description]
 		 */
-		public static function discoverUrlHooks(){
+		public function discoverUrlHooks(){
 				$option = self::$selectorQueue->next(self::$selectorQueueKey);
 				if($option['childer'] || $option['next']){
 					if(!$option['repeat']){
@@ -417,7 +373,7 @@
 					}
 					$url = $option['mosaic']?self::$url:$option['header'];
 					//这里以后可以优化
-					$result = array_unique(self::get_select(self::$html,$option['selector'],empty($option['parser'])?'Xpath':$option['parser']));
+					$result = array_unique($this->get_select(self::$html,$option['selector'],empty($option['parser'])?'Xpath':$option['parser']));
 					print_r($result);
 					foreach ($result as $value) {
 						self::$urlQueue->inQueue($url.$value,self::$urlQueueKey);
@@ -429,8 +385,8 @@
 				
 			// }
 		}
-		public static function afterDiscoverHooks(){
-			log::output('5',self::ERROR_LEVEL_1) ;
+		public function afterDiscoverHooks(){
+			// log::output('5',self::ERROR_LEVEL_1) ;
 		}
 
 		/**
@@ -438,7 +394,7 @@
 		 * 初始化数据库
 		 * 初始化爬取模式
 		 */
-		public static function endWorker(){
+		public function endWorker(){
 			//初始化数据库
 			// self::initDatabase(self::$configs);
 			//选择抓取模式
@@ -449,17 +405,10 @@
 
 
 		/**
-		 * 用于对最终爬取的数据进行加工
-		 * @return [type] [description]
-		 */
-		public static function customRenderData(){
-		}
-
-		/**
 		 * 广度遍历爬取规则
 		 * 爬取所有的规则队列
 		 */
-		public static function breadth(){
+		public function breadth(){
 			//先读取首页的主要URL
 			// self::homepaegsUrl(self::$url);
 			echo 'breadth';
@@ -468,7 +417,7 @@
 		 * 深度遍历爬取规则
 		 * 爬取所有的规则队列
 		 */
-		public static function depth($urlSelector){
+		public function depth($urlSelector){
 			foreach ($urlSelector as $value) {
 				$option = [];
 				foreach ($value as $key => $item) {
@@ -482,7 +431,7 @@
 				$option['childer'] = empty($value['childer'])?0:1;
  				self::$selectorQueue->inQueue($option,self::$selectorQueueKey);
 				self::$taskNumber++;
-				self::depth($value['childer']);
+				$this->depth($value['childer']);
 				self::$taskNumber--;
 			}
 		}

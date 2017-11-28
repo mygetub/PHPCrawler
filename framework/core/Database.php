@@ -229,6 +229,11 @@
 			log::info("对不起，您的操作有误，错误原因为：".$error,'[ database error ]',2);
 		}
 
+
+		public static function lastId(){
+			return self::$pdo->lastInsertId();
+		}
+
 	}
 
 
