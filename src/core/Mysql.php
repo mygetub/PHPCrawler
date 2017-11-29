@@ -10,7 +10,13 @@
 	//----------------------------------
 	// PHPCrawler数据库操作类文件
 	//----------------------------------
-	class mysql
+	
+
+	namespace PHPCrawler\core;
+
+	use PDO;
+
+	class Mysql
 	{
 		
 		//pdo对象
@@ -23,9 +29,6 @@
 			'text',
 			'DATETIME',
 		);
-		
-
-
 
 
 

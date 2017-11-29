@@ -10,8 +10,8 @@
 	//----------------------------------
 	// PHPCrawler日志文件
 	//----------------------------------
-	header('Content-Type:text/html;charset=utf-8');
-	
+	namespace PHPCrawler\core;
+		
 	class log{
 		/**
 		 * 报错抬头

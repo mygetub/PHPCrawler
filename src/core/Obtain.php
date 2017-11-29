@@ -12,6 +12,10 @@
 	// 用于获取的html代码
 	// 该版本主要使用curl进行网页获取
 	//----------------------------------
+	
+	namespace PHPCrawler\core;
+	
+	
 	class Obtain
 	{
 		//curl资源

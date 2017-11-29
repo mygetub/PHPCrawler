@@ -22,10 +22,11 @@
 // 根据传入id输出对应的值
 //----------------------------------
 
+namespace PHPCrawler\core\queue;
 
-interface queueInterface
+
+interface QueueInterface
 {
-	public function __construct();
 	public function inQueue($url,$key);
 	public function outQueue($key);
 	public function isEmpty($key);

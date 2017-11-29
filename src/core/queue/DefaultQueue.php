@@ -11,7 +11,12 @@
 /**
  * 默认的内存队列
  */
-class defaultQueue implements queueInterface
+
+namespace PHPCrawler\core\queue;
+
+use PHPCrawler\core\queue\QueueInterface;
+
+class DefaultQueue implements QueueInterface
 {
 
 	/**

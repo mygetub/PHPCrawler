@@ -10,7 +10,17 @@
 	//----------------------------------
 	// PHPCrawler主文件
 	//----------------------------------
-	class PHPCrawler
+	namespace PHPCrawler;
+
+	use PHPCrawler\core\Log;
+	use PHPCrawler\core\Mysql;
+	use PHPCrawler\core\Obtain;
+	use PHPCrawler\core\Analysis;
+	use PHPCrawler\core\queue\DefaultQueue;
+	use PHPCrawler\core\queue\RedisQueue as redis;
+
+
+	class Crawler
 	{
 		/**
 		 * 版本号
@@ -67,10 +77,6 @@
 		 */
 		public static $urlSelector = '';
 		/**
-		 * 是否需要连接域名
-		 */
-		public static $link = false;
-		/**
 		 * 请求头信息
 		 * @var array
 		 */
@@ -102,6 +108,25 @@
 
 
 		public static $currentUrl = '';
+
+		/**
+		 * 数据库默认配置参数
+		 */
+		public static $db_config = array(
+	        'dbhost'=> '127.0.0.1',
+		    'port'  => 3306,
+		    'dbuser'=> 'root',
+	    	'dbpsw' => 'root',
+	    	'dbname'=> 'root'
+	    );
+
+	    /**
+	     * redis默认配置参数
+	     */
+	    public static $redis_config = array(
+		    'host'  => '127.0.0.1',
+		    'port'  => 6379,
+		);
 
 		/**
 		 * 已爬url的个数
@@ -151,9 +176,16 @@
 			 */
 			self::$method = empty($config['method'])?'':$config['method'];
 			/**
-			 * 配置link
+			 * 数据库配置参数
 			 */
-			self::$link = $config['link'];
+			if(empty($config['db_config'])){
+				self::$db_config['dbname'] = self::$name;
+			}else{
+				self::$db_config = $config['db_config'];
+			}
+			if(!empty($config['redis_config'])){
+				self::$redis_config = $config['redis_config'];
+			}
 
 			/**
 			 * 配置请求头信息
@@ -163,9 +195,9 @@
 			 * 配置匹配规则队列模式
 			 * 配置URL队列模式
 			 */
-			self::$selectorQueue = empty($config['queue'])?new defaultQueue() : new $config['queue'];
-			 self::$urlQueue = empty($config['queue'])?new defaultQueue() : new $config['queue'];
-			self::$htmlQueue = empty($config['queue'])?new defaultQueue() : new $config['queue'];
+			self::$selectorQueue = empty($config['queue'])?new DefaultQueue() : new redis(self::$redis_config);
+			 self::$urlQueue = empty($config['queue'])?new DefaultQueue() : new redis(self::$redis_config);
+			self::$htmlQueue = empty($config['queue'])?new DefaultQueue() : new redis(self::$redis_config);
 			log::info('The initialization is done ','[ info ]',self::ERROR_LEVEL_1);
 		}
 		/**
@@ -202,7 +234,7 @@
 		public function initDatabase($data){
 			//数据库是否创建连接
 			if(!isset(mysql::$pdo)){
-				mysql::connect($GLOBALS['db']);
+				mysql::connect(self::$db_config);
 			}
 			//判断是否创建了爬虫数据表
 			if(mysql::tablesNum($data['name']) == 1){
@@ -210,7 +242,7 @@
 				mysql::createDatabase($data);
 			}
 			//pdo原先的进程死亡再开一个进程
-			mysql::connect($GLOBALS['db']);
+			mysql::connect(self::$db_config);
 		} 
 
 		public function insertDatabase($name,$data){
@@ -226,7 +258,9 @@
 		 */
 		public  function CrawlerSelector(){
 			if(self::$method){
-				call_user_func(array(PHPCrawler , self::$method),self::$urlSelector);
+				call_user_func(array($this , self::$method),self::$urlSelector);
+				// call_user_func('depth',$this,self::$urlSelector);
+				// print_r(self::$method);
 			}
 		}
 
@@ -239,10 +273,12 @@
 			$this->startWorker();
 			while (!self::$urlQueue->isEmpty(self::$urlQueueKey)) {
 				foreach (self::$hooks as $value) {
-					// call_user_func(array(PHPCrawler,$value));
-					call_user_func(array(PHPCrawler,$value));
+					call_user_func(array($this,$value));
+					// call_user_func($value,$this);
+
 				}
 			}
+
 			$this->endWorker();
 						
 		}
@@ -256,7 +292,19 @@
 			//--------------------------------------------------------------------------------
 	        // 运行前验证
 	        //--------------------------------------------------------------------------------
+			// 严格开发模式
+			error_reporting( E_ALL & ~E_NOTICE & ~E_WARNING );
 
+			// 设置时区
+			date_default_timezone_set('Asia/Shanghai');
+
+			// 永不超时
+			ini_set('max_execution_time', 0);
+
+			if( PHP_SAPI != 'cli' )
+			{
+			    exit("You must run the CLI environment\n");
+			}
 	        // 检查PHP版本
 	        if (version_compare(PHP_VERSION, '5.3.0', 'lt')) 
 	        {
@@ -313,7 +361,6 @@
 			$option =  self::$selectorQueue->next(self::$selectorQueueKey);
 			$re = [];
 			for ($i = 0 ;$i < self::$selectorQueue->counts(self::$selectorQueueKey);$i++) {
-
 				if($option['childer']|| $option['next']){
 					return ;
 				}
@@ -328,7 +375,6 @@
 					}
 					//如果连续
 					$re[$option['column']] = $result[0];
-					// print_r($result);
 					// call_user_func($this->update_dataHooks,$result);
 				}
 				// self::insertDatabase(self::$name,$re);

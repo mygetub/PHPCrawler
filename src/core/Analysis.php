@@ -13,6 +13,13 @@
 	// 获得新的url和我所需要的内容
 	// 利用Xpath抓取
 	//----------------------------------
+	
+	namespace PHPCrawler\core;
+
+	use DOMDocument;
+	use DOMXpath;
+	
+	
 	class Analysis
 	{
 		//dom对象

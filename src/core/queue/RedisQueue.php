@@ -1,31 +1,29 @@
-
-
-
-
 <?php  
-	
 
+namespace PHPCrawler\core\queue;	
+
+use PHPCrawler\core\queue\QueueInterface;
 use  Predis\Client;
 
-class redisQueue implements queueInterface
+class RedisQueue implements QueueInterface
 {
 
 	private $redis;
 
-	public function __construct(){
-		$this->redis = new Client($GLOBALS['redis']);
+	public function __construct($config){
+		$this->redis = new Client($config);
 	}
 	public function inQueue($url,$key){
-		$this->redis -> lpush ($key , serialize($url) ) ;
+		$this->redis -> rpush ($key , serialize($url) ) ;
 	}
 	public function outQueue($key){
-		return unserialize($this->redis->rpop($key));
+		return unserialize($this->redis->lpop($key));
 	}
 	public function isEmpty($key){
 		return $this->redis->llen($key) === 0;
 	}
 	public function next($key){
-		return unserialize($this->redis->lindex($key,1));
+		return unserialize($this->redis->lindex($key,0));
 	}
 	public function show(){}
 	public function counts($key){
