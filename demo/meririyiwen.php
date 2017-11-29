@@ -53,7 +53,7 @@ $config = array(
 	$crawler = new Crawler($config);
 	// $crawler->update_data = function($re,$page){
 	// 	$re['title'] = '123213';
-	// 	return $re;
+	// 	return $re; 
 	// };
 	// $crawler->add_relation = function ($re,$mysql){
 	// 	print_r($mysql::lastId());
