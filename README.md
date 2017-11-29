@@ -21,17 +21,34 @@ PHPCrawler 是一个简单易用的爬虫框架，下载器基于 PHP的cURL
 - 遵循 PSR-4 标准
 - 灵活的扩展机制，可方便的为框架制作插件：自定义队列、自定义爬取方式...
 
+### 安装
+
+```
+composer require fsdstar/phpcrawler
+```
+
 ### 快速开始
 
 创建一个文件 start.php，包含以下内容
 
 ``` php
 <?php
-	require dirname(__FILE__).'/framework/init.php';
-	$config = array(
+	require_once __DIR__ . '/../vendor/autoload.php';
+
+use PHPCrawler\Crawler;
+
+$config = array(
 		'name' => 'meiriyiwen',
 		'url'	=> 'http://w.ihx.cc/',
 		'method' => 'depth',
+		'queue' => 'redis',
+		'db_config' => array(
+	        'dbhost'  => '127.0.0.1',
+		    'port'  => 3306,
+		    'dbuser'  => 'root',
+		    'dbpsw'  => 'root',
+		    'dbname'  => 'discussion'
+	    ),
 		'table' => array(
 			array(
 				'column' => 'title', 
@@ -66,8 +83,8 @@ PHPCrawler 是一个简单易用的爬虫框架，下载器基于 PHP的cURL
 			)
 		)
 	);
-	$init = new PHPCrawler($config);
-	$init->run();
+	$crawler = new Crawler($config);
+	$crawler->run();
 ?>
 ```
 在命令行中执行
