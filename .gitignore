@@ -1,1 +1,6 @@
+<<<<<<< HEAD
 /vendor
+=======
+/vendor
+.composer.lock
+>>>>>>> b794247f53d0556f0c94d2c18301a376e39ce4c7
