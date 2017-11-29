@@ -67,7 +67,7 @@ PHPCrawler 是一个简单易用的爬虫框架，下载器基于 PHP的cURL
 		)
 	);
 	$init = new PHPCrawler($config);
-	$init::run();
+	$init->run();
 ?>
 ```
 在命令行中执行
