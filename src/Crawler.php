@@ -237,7 +237,7 @@
 				mysql::connect(self::$db_config);
 			}
 			//判断是否创建了爬虫数据表
-			if(mysql::tablesNum($data['name']) == 1){
+			if(!mysql::tablesNum($data['name'])){
 				//self::db_ = TRUE;
 				mysql::createDatabase($data);
 			}
@@ -322,7 +322,7 @@
 			$this->CrawlerSelector();
 			// 将首页放置于队列中
 			if(!empty(self::$url)){
-				self::$urlQueue->inQueue(self::$url,self::$urlQueueKey);	
+				self::$urlQueue->inQueue('0'.self::$url,self::$urlQueueKey);	
 			}
 		}
 
@@ -334,9 +334,18 @@
 			log::output('urls:'.self::$urls,self::ERROR_LEVEL_1) ;
 			log::output('Surplus urls:'.self::$urlQueue->counts(self::$urlQueueKey),self::ERROR_LEVEL_1) ;
 			log::output('Speed of progress:'.(round(self::$urls/(self::$urls+self::$urlQueue->counts(self::$urlQueueKey)),2)*100).'%',self::ERROR_LEVEL_1) ;
+			self::$currentUrl = self::$urlQueue->outQueue(self::$urlQueueKey);
+			//获得url的task
+			$urlTask = substr(self::$currentUrl, 0,1);
+			//当前选择器的task
+			$selectorTask = self::$selectorQueue->next(self::$selectorQueueKey)['task'];
+			if($urlTask != $selectorTask){
+				$temp = self::$selectorQueue->outQueue(self::$selectorQueueKey);
+				unset($temp);
+			}
 			log::output('task:'.self::$selectorQueue->next(self::$selectorQueueKey)['task'],self::ERROR_LEVEL_1) ;
 			// print_r(self::$selectorQueue->show());
-			self::$currentUrl = self::$urlQueue->outQueue(self::$urlQueueKey);
+			self::$currentUrl = substr(self::$currentUrl,1,strlen(self::$currentUrl)-1);
 			log::output('url:'.self::$currentUrl,self::ERROR_LEVEL_1) ;
 
 			self::$urls++;
@@ -422,7 +431,7 @@
 					$result = array_unique($this->get_select(self::$html,$option['selector'],empty($option['parser'])?'Xpath':$option['parser']));
 					print_r($result);
 					foreach ($result as $value) {
-						self::$urlQueue->inQueue($url.$value,self::$urlQueueKey);
+						self::$urlQueue->inQueue(($option['task']+1).$url.$value,self::$urlQueueKey);
 					}
 
 					

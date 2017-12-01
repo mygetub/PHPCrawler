@@ -202,11 +202,9 @@
 		 * @return int  数据库个数
 		 */
 		public static function tablesNum($tablesName){
-			try {
-				return self::$pdo->exec("desc ".$tablesName);
-			} catch (Exception $e) {
-				return 1;
-			}
+			$result = self::$pdo->query("SHOW TABLES LIKE '". $tablesName."'");
+			return count($result->fetchAll());
+  
 		}
 		public static function createDatabase($column){
 			/**
