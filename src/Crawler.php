@@ -88,11 +88,18 @@
 		 */
 		public static $result = array();
 		/**
-		 * 队列模式
+		 * url队列
 		 * @var array
 		 */
 		public static $urlQueue = [];
 		public static $urlQueueKey = 'url';
+		/**
+		 * 已爬取的url
+		 */
+		public static $urlAlreadyUsed = [];
+		public static $urlAlreadyUsedKey = 'urlUsed';
+
+
 		/**
 		 * 匹配规则
 		 * @var array
@@ -195,9 +202,10 @@
 			 * 配置匹配规则队列模式
 			 * 配置URL队列模式
 			 */
-			self::$selectorQueue = empty($config['queue'])?new DefaultQueue() : new redis(self::$redis_config);
-			 self::$urlQueue = empty($config['queue'])?new DefaultQueue() : new redis(self::$redis_config);
-			self::$htmlQueue = empty($config['queue'])?new DefaultQueue() : new redis(self::$redis_config);
+			self::$selectorQueue = new DefaultQueue();
+			 self::$urlQueue = new DefaultQueue();
+			self::$htmlQueue = new DefaultQueue();
+			self::$urlAlreadyUsed = empty($config['queue'])?new DefaultQueue() : new redis(self::$redis_config);
 			log::info('The initialization is done ','[ info ]',self::ERROR_LEVEL_1);
 		}
 		/**
@@ -334,9 +342,23 @@
 			log::output('urls:'.self::$urls,self::ERROR_LEVEL_1) ;
 			log::output('Surplus urls:'.self::$urlQueue->counts(self::$urlQueueKey),self::ERROR_LEVEL_1) ;
 			log::output('Speed of progress:'.(round(self::$urls/(self::$urls+self::$urlQueue->counts(self::$urlQueueKey)),2)*100).'%',self::ERROR_LEVEL_1) ;
-			self::$currentUrl = self::$urlQueue->outQueue(self::$urlQueueKey);
-			//获得url的task
-			$urlTask = substr(self::$currentUrl, 0,1);
+			//进行提取URL如果url不位于已提取url中则跳出
+			while (1) {
+				self::$currentUrl = self::$urlQueue->outQueue(self::$urlQueueKey);
+				//获得url的task
+				$urlTask = substr(self::$currentUrl, 0,1);	
+				self::$currentUrl = substr(self::$currentUrl,1,strlen(self::$currentUrl)-1);
+				if(empty(self::$currentUrl)){
+					$this->endWorker();
+				}
+				if(!self::$urlAlreadyUsed->only(self::$urlAlreadyUsedKey,self::$currentUrl)){
+					break;
+				}
+				log::output('url is repeat',self::ERROR_LEVEL_1) ;
+				
+			}
+			// self::$currentUrl = self::$urlQueue->outQueue(self::$urlQueueKey);
+
 			//当前选择器的task
 			$selectorTask = self::$selectorQueue->next(self::$selectorQueueKey)['task'];
 			if($urlTask != $selectorTask){
@@ -345,7 +367,9 @@
 			}
 			log::output('task:'.self::$selectorQueue->next(self::$selectorQueueKey)['task'],self::ERROR_LEVEL_1) ;
 			// print_r(self::$selectorQueue->show());
-			self::$currentUrl = substr(self::$currentUrl,1,strlen(self::$currentUrl)-1);
+			// self::$currentUrl = substr(self::$currentUrl,1,strlen(self::$currentUrl)-1);
+			
+			
 			log::output('url:'.self::$currentUrl,self::ERROR_LEVEL_1) ;
 
 			self::$urls++;
@@ -441,7 +465,8 @@
 			// }
 		}
 		public function afterDiscoverHooks(){
-			// log::output('5',self::ERROR_LEVEL_1) ;
+			//对使用的url加入队列
+			self::$urlAlreadyUsed->set(self::$currentUrl,self::$urlAlreadyUsedKey);
 		}
 
 		/**
@@ -454,7 +479,11 @@
 			// self::initDatabase(self::$configs);
 			//选择抓取模式
 			// self::CrawlerSelector();
-			log::info('The PHPCrawler is end ','[ info ]',self::ERROR_LEVEL_1);
+			// 移除首页连接
+			self::$urlAlreadyUsed->remove(self::$urlAlreadyUsedKey,self::$url);
+			// 对已爬取的url进行备份
+			self::$urlAlreadyUsed->save();
+			log::info('The PHPCrawler is end ','[ info ]',self::ERROR_LEVEL_2);
 		}
 
 

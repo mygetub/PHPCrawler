@@ -101,11 +101,14 @@ class DefaultQueue implements QueueInterface
 	 * 显示所有的队列(测试使用)
 	 * @return [type] [description]
 	 */
-	public function show(){
-		return $this->_queue;
+	public function show($key){
+		return $this->_queue[$key];
 	}
 
 	
+    public function only($key,$value){
+        
+    }
 
 
 	 /**
@@ -115,6 +118,14 @@ class DefaultQueue implements QueueInterface
     public function isEmpty($key)
     {
         return count($this->_queue[$key]) === 0;
+    }
+    /**
+     * @method 持久化保存队列
+     * @return bool
+     */
+    public function save()
+    {
+       
     }
 	/**
      * 销毁队列；

@@ -12,14 +12,14 @@
 // PHPCrawler队列接口文件
 // 用于用户自定义其他类型的接口文件（内置内存和redis）
 // 需要实现的方法
-// 初始化队列
 // 入队
 // 出队
-// 当前队列个数
+// 是否为空
 // 下一个
-// 清空队列
-// 销毁队列
-// 根据传入id输出对应的值
+// 显示队列（测试使用）
+// 队列个数
+// 当前内容是否在队列中
+// 持久化当前队列
 //----------------------------------
 
 namespace PHPCrawler\core\queue;
@@ -31,7 +31,9 @@ interface QueueInterface
 	public function outQueue($key);
 	public function isEmpty($key);
 	public function next($key);
-	public function show();
+	public function show($key);
 	public function counts($key);
+	public function save();
+	public function only($key,$value);
 	public function __destruct();
 }
