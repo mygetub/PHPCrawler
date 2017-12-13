@@ -34,6 +34,7 @@
 	        curl_close(self::$ch);
 			// 创建一个cURL资源
 			self::$ch = curl_init();
+			self::$IP = self::Ip();
 		}
 
 

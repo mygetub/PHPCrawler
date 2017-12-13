@@ -153,6 +153,7 @@
 			'afterDiscoverHooks',
 		];
 		public $update_data = '';
+		public $update_url = '';
 		public $add_relation = '';
 
 		function __construct($config){
@@ -404,13 +405,13 @@
 					$result = $this->get_select(self::$html,$option['selector'],empty($option['parser'])?'Xpath':$option['parser']);
 					//如果为空则证明没有后续了则直接跳出
 					if(count($result)===0){
+						log::info('result is null,insetr error','[ info ]',self::ERROR_LEVEL_1);
 						return ;
 					}
 					//如果连续
 					$re[$option['column']] = $result[0];
 					// call_user_func($this->update_dataHooks,$result);
 				}
-				// self::insertDatabase(self::$name,$re);
 				$temp =  self::$selectorQueue->next(self::$selectorQueueKey);
 				if($option['repeat']){
 					self::$selectorQueue->inQueue($option,self::$selectorQueueKey);
@@ -453,8 +454,8 @@
 					$url = $option['mosaic']?self::$url:$option['header'];
 					//这里以后可以优化
 					$result = array_unique($this->get_select(self::$html,$option['selector'],empty($option['parser'])?'Xpath':$option['parser']));
-					print_r($result);
 					foreach ($result as $value) {
+						$value = call_user_func($this->update_url,$value);
 						self::$urlQueue->inQueue(($option['task']+1).$url.$value,self::$urlQueueKey);
 					}
 
