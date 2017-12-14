@@ -346,6 +346,7 @@
 			//进行提取URL如果url不位于已提取url中则跳出
 			while (1) {
 				self::$currentUrl = self::$urlQueue->outQueue(self::$urlQueueKey);
+				
 				//获得url的task
 				$urlTask = substr(self::$currentUrl, 0,1);	
 				self::$currentUrl = substr(self::$currentUrl,1,strlen(self::$currentUrl)-1);
@@ -455,7 +456,8 @@
 					//这里以后可以优化
 					$result = array_unique($this->get_select(self::$html,$option['selector'],empty($option['parser'])?'Xpath':$option['parser']));
 					foreach ($result as $value) {
-						$value = call_user_func($this->update_url,$value);
+						$return = call_user_func($this->update_url,$value);
+						if (isset($return)) $value = $return;
 						self::$urlQueue->inQueue(($option['task']+1).$url.$value,self::$urlQueueKey);
 					}
 
