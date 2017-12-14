@@ -124,7 +124,7 @@
 		 * @param  [type] $sort  [排序规则]
 		 * @return [type]        [返回查询的结果]
 		 */
-		public static function find($table,$where,$limitStart,$limitEnd,$sort){
+		public static function find($table,$where,$limitStart,$limitEnd,$sort = ""){
 			$sql = 'select * from '.$table;
 			if($where != ""){
 				$sql.=' where ';
