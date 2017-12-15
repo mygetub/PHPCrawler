@@ -4,7 +4,8 @@
     "type": "library",
     "license": "MIT",
     "require": {
-        "predis/predis": "^1.1"
+        "predis/predis": "^1.1",
+        "workerman/workerman": "^3.5"
     },
     "autoload": {
         "psr-4": {

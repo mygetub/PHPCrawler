@@ -397,6 +397,9 @@
 			$re = [];
 			for ($i = 0 ;$i < self::$selectorQueue->counts(self::$selectorQueueKey);$i++) {
 				if($option['childer']|| $option['next']){
+					if($option['repeat']){
+						self::$selectorQueue->inQueue($option,self::$selectorQueueKey);
+					}
 					return ;
 				}
 				//如果是正常的匹配则如果页面存在则，抓取信息
