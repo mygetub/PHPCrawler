@@ -462,7 +462,7 @@
 						$return = call_user_func($this->update_url,$value);
 						if (isset($return)) $value = $return;
 						self::$urlQueue->inQueue(($option['task']+1).$url.$value,self::$urlQueueKey);
-					} 
+					}
 
 					
 					
