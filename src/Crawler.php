@@ -101,7 +101,7 @@
 
 
 		/**
-		 * 匹配规则
+		 * 匹配规则 
 		 * @var array
 		 */
 		public static $selectorQueue = [];
