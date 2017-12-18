@@ -213,7 +213,7 @@
 			/**
 			 * 配置logfile
 			 */
-			self::$logFile = empty($config['logFile'])?'./':$config['logFile'];
+			self::$logFile = empty($config['logFile'])?'default.log':$config['logFile'];
 			/**
 			 * 配置timer
 			 */
