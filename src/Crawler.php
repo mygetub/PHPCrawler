@@ -18,6 +18,8 @@
 	use PHPCrawler\core\Analysis;
 	use PHPCrawler\core\queue\DefaultQueue;
 	use PHPCrawler\core\queue\RedisQueue as redis;
+	use Workerman\Worker;
+	use Workerman\Lib\Timer;
 
 
 	class Crawler
@@ -152,11 +154,32 @@
 			'discoverUrlHooks',
 			'afterDiscoverHooks',
 		];
+
+		//collback function 
 		public $update_data = '';
 		public $update_url = '';
 		public $add_relation = '';
 
+		//daemonize 
+		public static $daemonize = FALSE;
+
+		//param
+		public static $commands = [];
+
+		//Process number
+		public static $count = 1;
+
+		//log
+		public static $logFile;
+
+		//workerman
+		public static $worker;
+
+		//timer(s)
+		public static $timer; 
+
 		function __construct($config){
+			global $argv;
 			self::$configs = $config;
 			/**
 			 * 提示爬虫信息
@@ -184,6 +207,19 @@
 			 */
 			self::$method = empty($config['method'])?'':$config['method'];
 			/**
+			 * 配置process
+			 */
+			self::$count = empty($config['count'])?1:$config['count'];
+			/**
+			 * 配置logfile
+			 */
+			self::$logFile = empty($config['logFile'])?'./':$config['logFile'];
+			/**
+			 * 配置timer
+			 */
+			self::$timer = empty($config['timer'])?'':$config['timer'];
+
+			/**
 			 * 数据库配置参数
 			 */
 			if(empty($config['db_config'])){
@@ -207,6 +243,7 @@
 			 self::$urlQueue = new DefaultQueue();
 			self::$htmlQueue = new DefaultQueue();
 			self::$urlAlreadyUsed = empty($config['queue'])?new DefaultQueue() : new redis(self::$redis_config);
+			self::$commands = $argv;
 			log::info('The initialization is done ','[ info ]',self::ERROR_LEVEL_1);
 		}
 		/**
@@ -279,18 +316,68 @@
 		 * @return [type] [description]
 		 */
 		public function run(){
+			if(isset(self::$commands[1])){
+	        	self::$daemonize = TRUE;
+	        }
+	        //init workerman
+	        if(self::$daemonize){
+	        	$worker = new Worker;
+	            $worker->count = self::$count;
+	            $worker->name = self::$name;
+	            $worker->onWorkerStart = [$this, 'onWorkerStart'];
+	            $worker->onWorkerStop = [$this, 'onWorkerStop'];
+	            self::$worker = $worker;
+	            Worker::$daemonize = true;
+	            Worker::$stdoutFile = self::$logFile;
+	            $this->command();
+	            Worker::runAll();
+	        }else{
+	        	$this->start();
+	        }
+						
+		}
+
+		
+		/**
+		 * check param
+		 */
+		public function command(){
+			switch (self::$commands[1]) {
+	            case 'start':
+	                break;
+	            case 'stop':
+					log::info( "workerman stop",' [ workerman info ] ',self::ERROR_LEVEL_1);
+	                break;
+	            default:
+	                break;
+	        }
+		}
+
+
+
+
+
+		public function start(){
 			$this->startWorker();
 			while (!self::$urlQueue->isEmpty(self::$urlQueueKey)) {
 				foreach (self::$hooks as $value) {
 					call_user_func(array($this,$value));
-					// call_user_func($value,$this);
-
 				}
 			}
 
 			$this->endWorker();
-						
 		}
+		public function onWorkerStart($worker){
+		    $time_interval = self::$timer;
+		    Timer::add($time_interval, function()
+		    {
+				$this->start();
+		    });
+		}
+		public function onWorkerStop($worker){
+			
+		}
+
 
 		/**
 		 * 开始工作准备阶段
@@ -325,6 +412,7 @@
 	        {
 	            log::info('The curl extension was not found',' PHPCrawler system ',self::ERROR_LEVEL_2);
 	        }
+	    
 			//初始化数据库
 			$this->initDatabase(self::$configs);
 			//初始化抓取规则
@@ -525,4 +613,5 @@
 				self::$taskNumber--;
 			}
 		}
+
 	}
